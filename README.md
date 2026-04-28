@@ -13,6 +13,7 @@ C++
 
 ## Goal
 < 50ms end-to-end
+No use of dynamic memory.
 
 ## Data
 VisDrone or UAV123
