@@ -19,6 +19,11 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <libcamera/formats.h>
+#include <mutex>
+#include <cstring>
+#include <sys/mman.h>
+
 
 using namespace libcamera;
 using namespace std::chrono_literals;
@@ -30,6 +35,11 @@ static std::shared_ptr<Camera> camera;
 
 int SCREEN_WIDTH = 1920;
 int SCREEN_HEIGHT = 1080;
+std::mutex frameMutex;
+std::vector<uint8_t> sharedFrameData;
+bool newFrameAvailable = false;
+std::map<FrameBuffer*, void*> mappedBuffers;
+
 
 class RenderWindow {
 	public:
@@ -47,7 +57,7 @@ RenderWindow::RenderWindow(const char* title, int width, int height) : window(NU
 	if (window == NULL) {
 		std::cout << "SDL could not be created." << std::endl;
 	}
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
 	if (renderer == NULL) {
 		std::cout << "SDL could not create renderer!" << std::endl;
@@ -76,6 +86,18 @@ static void requestComplete(Request *request) {
 
 	for (auto bufferPair : buffers) {
 		FrameBuffer *buffer = bufferPair.second;
+
+		void *mem = mappedBuffers[buffer];
+		size_t length = buffer->metadata().planes()[0].bytesused;
+
+		if (mem != nullptr && length > 0) {
+			std::lock_guard<std::mutex> lock(frameMutex);
+			if (sharedFrameData.size() != length) {
+				sharedFrameData.resize(length);
+			}
+			std::memcpy(sharedFrameData.data(), mem, length);
+			newFrameAvailable = true;
+		}
 		const FrameMetadata &metadata = buffer->metadata();
 		std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
 		unsigned int nplane = 0;
@@ -120,8 +142,9 @@ int main() {
 	std::cout << "Default viewfinder config is: " << streamConfig.toString() << std::endl;
 
 	// Change settings, validate.
-	streamConfig.size.width = 1920;
-	streamConfig.size.height = 1080;
+	streamConfig.size.width = SCREEN_WIDTH;
+	streamConfig.size.height = SCREEN_HEIGHT;
+	streamConfig.pixelFormat = formats::YUYV;
 
 	config->validate();
 	std::cout << "Post validated config = " << streamConfig.toString() << std::endl;
@@ -153,6 +176,12 @@ int main() {
 			return -1;
 		}
 		const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
+		int fd = buffer->planes()[0].fd.get();
+		size_t length = buffer->planes()[0].length;
+		void *memory = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		mappedBuffers[buffer.get()] = memory;
+
+
 		int ret = request->addBuffer(stream, buffer.get());
 		if (ret < 0) {
 			std::cerr << "Can't set buffer for request" << std::endl;
@@ -176,6 +205,8 @@ int main() {
 
 	RenderWindow window("SDL Window", SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_Renderer* renderer = window.GetRenderer();
+	
+	SDL_Texture* cameraTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YUY2, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	if (renderer == NULL) {
 		std::cout << "Nope again!" << std::endl;
@@ -190,21 +221,22 @@ int main() {
 				gameRunning = false;
 			}
 		}
-		SDL_SetRenderDrawColor(renderer, 169, 169, 169, 1);
+			{
+				std::lock_guard<std::mutex> lock(frameMutex);
+				if (newFrameAvailable) {
+					SDL_UpdateTexture(cameraTexture, NULL, sharedFrameData.data(), SCREEN_WIDTH * 2);
+					newFrameAvailable = false;
+				}
+			}
 		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, cameraTexture, NULL, NULL);
 		SDL_RenderPresent(renderer);
 	}
 	window.close();
-	
-	while (true) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-
-
-
-
-
 	camera->stop();
+	for (const auto& buffer : buffers) {
+		munmap(mappedBuffers[buffer.get()], buffer->planes()[0].length);
+	}
 	allocator->free(stream);
 	delete allocator;
 	camera->release();
