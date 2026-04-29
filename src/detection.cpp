@@ -23,6 +23,7 @@
 #include <mutex>
 #include <cstring>
 #include <sys/mman.h>
+#include <jpeglib.h>
 
 
 using namespace libcamera;
@@ -33,8 +34,8 @@ using namespace std::chrono_literals;
 // CameraManager is a unique pointer so that once its no longer used (falls out of scope), memory is gone. 
 static std::shared_ptr<Camera> camera;
 
-int SCREEN_WIDTH = 1920;
-int SCREEN_HEIGHT = 1080;
+int SCREEN_WIDTH = 1280;
+int SCREEN_HEIGHT = 720;
 std::mutex frameMutex;
 std::vector<uint8_t> sharedFrameData;
 bool newFrameAvailable = false;
@@ -57,7 +58,7 @@ RenderWindow::RenderWindow(const char* title, int width, int height) : window(NU
 	if (window == NULL) {
 		std::cout << "SDL could not be created." << std::endl;
 	}
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	if (renderer == NULL) {
 		std::cout << "SDL could not create renderer!" << std::endl;
@@ -78,40 +79,45 @@ void RenderWindow::close() {
 
 // Re-read this later to understand. 
 static void requestComplete(Request *request) {
-	if (request->status() == Request::RequestCancelled) {
-		return;
-	}
+    if (request->status() == Request::RequestCancelled) return;
 
-	const std::map<const Stream *, FrameBuffer *> &buffers = request->buffers();
+    const std::map<const Stream *, FrameBuffer *> &buffers = request->buffers();
 
-	for (auto bufferPair : buffers) {
-		FrameBuffer *buffer = bufferPair.second;
+    for (auto bufferPair : buffers) {
+        FrameBuffer *buffer = bufferPair.second;
+        void *mem = mappedBuffers[buffer];
+        size_t length = buffer->metadata().planes()[0].bytesused;
 
-		void *mem = mappedBuffers[buffer];
-		size_t length = buffer->metadata().planes()[0].bytesused;
+        if (mem != nullptr && length > 0) {
+            struct jpeg_decompress_struct cinfo;
+            struct jpeg_error_mgr jerr;
+            cinfo.err = jpeg_std_error(&jerr);
+            jpeg_create_decompress(&cinfo);
+            jpeg_mem_src(&cinfo, (unsigned char*)mem, length);
+            jpeg_read_header(&cinfo, TRUE);
+            cinfo.out_color_space = JCS_RGB;
+            jpeg_start_decompress(&cinfo);
 
-		if (mem != nullptr && length > 0) {
-			std::lock_guard<std::mutex> lock(frameMutex);
-			if (sharedFrameData.size() != length) {
-				sharedFrameData.resize(length);
-			}
-			std::memcpy(sharedFrameData.data(), mem, length);
-			newFrameAvailable = true;
-		}
-		const FrameMetadata &metadata = buffer->metadata();
-		std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
-		unsigned int nplane = 0;
-		for (const FrameMetadata::Plane &plane : metadata.planes()) {
-			std::cout << plane.bytesused;
-			if (nplane++ < metadata.planes().size()) std::cout << "/";
-		}
-		std::cout << std::endl;
-	}
+            int rowStride = cinfo.output_width * cinfo.output_components; // 3 for RGB
+            std::vector<uint8_t> decoded(cinfo.output_width * cinfo.output_height * cinfo.output_components);
 
-	request->reuse(Request::ReuseBuffers);
-	camera->queueRequest(request);
+            uint8_t *rowPtr = decoded.data();
+            while (cinfo.output_scanline < cinfo.output_height) {
+                jpeg_read_scanlines(&cinfo, &rowPtr, 1);
+                rowPtr += rowStride;
+            }
 
+            jpeg_finish_decompress(&cinfo);
+            jpeg_destroy_decompress(&cinfo);
 
+            std::lock_guard<std::mutex> lock(frameMutex);
+            sharedFrameData = std::move(decoded);
+            newFrameAvailable = true;
+        }
+    }
+
+    request->reuse(Request::ReuseBuffers);
+    camera->queueRequest(request);
 }
 
 
@@ -144,7 +150,7 @@ int main() {
 	// Change settings, validate.
 	streamConfig.size.width = SCREEN_WIDTH;
 	streamConfig.size.height = SCREEN_HEIGHT;
-	streamConfig.pixelFormat = formats::YUYV;
+	streamConfig.pixelFormat = formats::MJPEG;
 
 	config->validate();
 	std::cout << "Post validated config = " << streamConfig.toString() << std::endl;
@@ -206,7 +212,7 @@ int main() {
 	RenderWindow window("SDL Window", SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_Renderer* renderer = window.GetRenderer();
 	
-	SDL_Texture* cameraTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YUY2, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+	SDL_Texture* cameraTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	if (renderer == NULL) {
 		std::cout << "Nope again!" << std::endl;
@@ -224,7 +230,7 @@ int main() {
 			{
 				std::lock_guard<std::mutex> lock(frameMutex);
 				if (newFrameAvailable) {
-					SDL_UpdateTexture(cameraTexture, NULL, sharedFrameData.data(), SCREEN_WIDTH * 2);
+					SDL_UpdateTexture(cameraTexture, NULL, sharedFrameData.data(), SCREEN_WIDTH * 3);
 					newFrameAvailable = false;
 				}
 			}
