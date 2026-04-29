@@ -1,11 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(Counter-UAS)
 
-add_executable(Counter-UAS src/detection.cpp)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBCAMERA REQUIRED IMPORTED_TARGET libcamera)
+pkg_check_modules(LIBCAMERA_BASE REQUIRED IMPORTED_TARGET libcamera-base)
+pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
+pkg_check_modules(SDL2_IMAGE REQUIRED IMPORTED_TARGET SDL2_image)
+pkg_check_modules(LIBJPEG REQUIRED IMPORTED_TARGET libjpeg)
 
-# 1. Point the compiler directly to the system header directory
-target_include_directories(Counter-UAS PRIVATE /usr/include/libcamera)
+add_executable(Counter-UAS src/main.cpp)
 
-# 2. Link against the camera library
-target_link_libraries(Counter-UAS PRIVATE camera)
+target_include_directories(Counter-UAS PRIVATE ${SDL2_INCLUDE_DIRS})
+
+target_link_libraries(Counter-UAS 
+    PRIVATE 
+        PkgConfig::LIBCAMERA
+        PkgConfig::LIBCAMERA_BASE
+        PkgConfig::SDL2
+        PkgConfig::SDL2_IMAGE
+        PkgConfig::LIBJPEG
+)
