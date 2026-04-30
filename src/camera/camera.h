@@ -13,6 +13,8 @@
 #include <cstring>
 #include <sys/mman.h>
 #include <jpeglib.h>
+#include <stdexcept>
+
 
 // Okay. Things to do.
 // Initialize Camera Manager.
@@ -30,13 +32,15 @@
 
 // Initialize camera manager
 // Args: Reference to CameraManager class. 
-// Rets: Fail or success 
-int initializeManager(libcamera::CameraManager &Manager);
+// Rets: None
+void initializeManager(libcamera::CameraManager &Manager);
 
 // Initialize actual camera.
 // Args: Reference to Camera
-// Rets: Fail or success 
-int initializeCamera();
+// Rets: None 
+void getCamera();
+
+std::vector<std::shared_ptr<libcamera::Camera>> getCameraList(const libcamera::CameraManager &Manager);
 
 // Function to pass in configuration files
 // Args: Reference to Camera

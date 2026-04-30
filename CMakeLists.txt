@@ -10,13 +10,17 @@ pkg_check_modules(LIBJPEG REQUIRED IMPORTED_TARGET libjpeg)
 
 add_executable(Counter-UAS src/main.cpp)
 
+add_executable(Camera-Test src/camera/camera.cpp)
+
 target_include_directories(Counter-UAS PRIVATE ${SDL2_INCLUDE_DIRS})
 
-target_link_libraries(Counter-UAS 
-    PRIVATE 
+set(COMMON_LIBS
         PkgConfig::LIBCAMERA
         PkgConfig::LIBCAMERA_BASE
         PkgConfig::SDL2
         PkgConfig::SDL2_IMAGE
         PkgConfig::LIBJPEG
 )
+
+target_link_libraries(Counter-UAS ${COMMON_LIBS})
+target_link_libraries(Camera-Test ${COMMON_LIBS})
