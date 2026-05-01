@@ -126,3 +126,8 @@ std::vector<std::unique_ptr<libcamera::Request>> createRequestVector();
 // Args: Request vector, buffer, camera, stream
 // Returns: None
 void fillRequests(std::vector<std::unique_ptr<libcamera::Request>> &requests, const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &buffers, libcamera::Camera &camera, libcamera::Stream* &stream);
+
+// Calls completeRequest on camera object. 
+// Args: Camera reference
+// Rets: Nothing 
+void completeCameraRequest(libcamera::Camera &camera);

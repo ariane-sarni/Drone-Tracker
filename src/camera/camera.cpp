@@ -1,5 +1,4 @@
 #include "camera.h"
-#include <iostream>
 
 using namespace libcamera;
 
