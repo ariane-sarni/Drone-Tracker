@@ -174,11 +174,6 @@ int main() {
 	Stream *stream = streamConfig.stream();
 	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = allocator->buffers(stream);
 	std::vector<std::unique_ptr<Request>> requests;
-
-
-	
-
-
 	for (unsigned int i = 0; i < buffers.size(); i++) {
 		std::unique_ptr<Request> request = camera->createRequest();
 		if (!request) {
@@ -209,6 +204,11 @@ int main() {
 	camera->requestCompleted.connect(requestComplete);
 	camera->start();
 
+
+
+
+
+	
 	for (std::unique_ptr<Request> &request : requests) {
 		camera->queueRequest(request.get());
 	}
@@ -247,6 +247,11 @@ int main() {
 		SDL_RenderCopy(renderer, cameraTexture, NULL, NULL);
 		SDL_RenderPresent(renderer);
 	}
+
+
+
+
+
 	window.close();
 	camera->stop();
 	for (const auto& buffer : buffers) {

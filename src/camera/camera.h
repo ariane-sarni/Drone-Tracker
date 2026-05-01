@@ -15,6 +15,8 @@
 #include <sys/mman.h>
 #include <thread>
 
+
+
 // Okay. Things to do.
 // Initialize Camera Manager.
 //  I could list all camera ids. Not neccesary.

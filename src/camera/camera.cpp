@@ -3,8 +3,13 @@
 
 using namespace libcamera;
 
+namespace {
 std::map<FrameBuffer*, void*> mappedBuffers;
-
+std::mutex frameMutex;
+static std::shared_ptr<Camera> camera;
+std::vector<uint8_t> sharedFrameData;
+bool newFrameAvailable = false;
+}
 
 void throw_error(int ret, const std::string &message) {
   std::cerr << "FATAL ERROR: " << message << " (Error code: " << ret << (")");
@@ -125,6 +130,56 @@ void fillRequests(std::vector<std::unique_ptr<Request>> &requests, const std::ve
   }
 }
 
+// Take a request.
+static void requestComplete(Request *request) {
+  // If it has been cancelled, finish.
+  if (request->status() == Request::RequestCancelled) {
+    return;
+  }
+
+  // Make a hash map with a stream pointer as a key, and frame buffer as value.
+  const std::map<const Stream *, FrameBuffer*> &buffers = request->buffers();
+
+  for (auto bufferPair: buffers) {
+    FrameBuffer *buffer = bufferPair.second; 
+    void *mem = mappedBuffers[buffer];
+    size_t length = buffer->metadata().planes()[0].bytesused;
+
+    if (mem != nullptr && length > 0) {
+      struct jpeg_decompress_struct cinfo; 
+      struct jpeg_error_mgr jerr; 
+      cinfo.err = jpeg_std_error(&jerr);
+      jpeg_create_decompress(&cinfo);
+      jpeg_mem_src(&cinfo, (unsigned char*)mem, length);
+      jpeg_read_header(&cinfo, TRUE);
+      cinfo.out_color_space = JCS_RGB;
+      jpeg_start_decompress(&cinfo);
+
+      int rowStride = cinfo.output_width * cinfo.output_components;
+      std::vector<uint8_t> decoded(cinfo.output_width * cinfo.output_height * cinfo.output_components);
+
+      uint8_t *rowPtr = decoded.data();
+      while (cinfo.output_scanline < cinfo.output_height) {
+        jpeg_read_scanlines(&cinfo, &rowPtr, 1);
+        rowPtr += rowStride; 
+
+      }
+      jpeg_finish_decompress(&cinfo);
+      jpeg_destroy_decompress(&cinfo);
+      std::lock_guard<std::mutex> lock(frameMutex);
+      sharedFrameData = std::move(decoded);
+      newFrameAvailable = true;
+    }
+  }
+  request->reuse(Request::ReuseBuffers);
+  camera->queueRequest(request);
+}
+
+void completeCameraRequest(Camera &camera) {
+  camera.requestCompleted.connect(requestComplete);
+  camera.start();
+}
+
 
 void cameraTest() {
   // 1. Create camera manager, intialize it.
@@ -135,7 +190,7 @@ void cameraTest() {
   auto cameraList = getCameraList(*cameraManager);
   std::string cameraID = getCameraID(*cameraList[0]);
 
-  auto camera = obtainCamera(*cameraManager, cameraID);
+  camera = obtainCamera(*cameraManager, cameraID);
   acquireCamera(*camera);
 
 
@@ -165,6 +220,9 @@ void cameraTest() {
   const auto &buffers = createBufferVector(stream, allocator);
   auto requests = createRequestVector();
   fillRequests(requests, buffers, *camera, stream);
+  completeCameraRequest(*camera);
+
+  // After this, everything else is an SDL task. Should be done in Window file.
 
 }
 
