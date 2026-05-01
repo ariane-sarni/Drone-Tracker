@@ -47,10 +47,7 @@ void acquireCamera(Camera &Cam){
     }
 } 
 
-
-
-int main() {
-
+void cameraTest() {
     // 1. Create camera manager, intialize it.
     // 2. Get camera list. 
     // 3. Get Camera id, acquire camera. 
@@ -63,8 +60,16 @@ int main() {
     acquireCamera(*camera);
 
     // Now we can move onto configuration
-    
+    // Probably look like the follownig: 
+    // makeConfig, returns configuration object. 
+    // Maybe a change config / apply config settings? 
+    // validateConfig, takes configuration (after changing)  
+    // setCameraConfig, set a cameras configuration 
 
 
+}
 
+int main() {
+    cameraTest();
+    return 0;
 }
