@@ -175,6 +175,10 @@ int main() {
 	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = allocator->buffers(stream);
 	std::vector<std::unique_ptr<Request>> requests;
 
+
+	
+
+
 	for (unsigned int i = 0; i < buffers.size(); i++) {
 		std::unique_ptr<Request> request = camera->createRequest();
 		if (!request) {
@@ -196,6 +200,11 @@ int main() {
 
 		requests.push_back(std::move(request));
 	}
+
+
+
+
+
 
 	camera->requestCompleted.connect(requestComplete);
 	camera->start();

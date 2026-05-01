@@ -3,6 +3,9 @@
 
 using namespace libcamera;
 
+std::map<FrameBuffer*, void*> mappedBuffers;
+
+
 void throw_error(int ret, const std::string &message) {
   std::cerr << "FATAL ERROR: " << message << " (Error code: " << ret << (")");
   std::exit(EXIT_FAILURE);
@@ -46,6 +49,83 @@ void acquireCamera(Camera &Cam) {
   }
 }
 
+// Research this later, not sure what streamrole is. 
+std::unique_ptr<CameraConfiguration> makeConfig(Camera &cam){
+  return cam.generateConfiguration({StreamRole::Viewfinder});
+}
+
+StreamConfiguration getStreamConfig(CameraConfiguration &config) {
+  return config.at(0);
+}
+
+
+// make a way to change this to what you want later.
+void changeConfig(StreamConfiguration &config) {
+  config.size.width = 1280;
+  config.size.height = 720;
+  config.pixelFormat = formats::MJPEG;
+}
+
+void validateConfig(Camera &cam, std::unique_ptr<CameraConfiguration> &config) {
+  cam.configure(config.get());
+}
+
+FrameBufferAllocator* FrameAllocatorCreator(std::shared_ptr<Camera> &cam) {
+  return new FrameBufferAllocator(cam);
+}
+
+void allocateFrameMemory(FrameBufferAllocator &allocator, CameraConfiguration &config){
+  for (StreamConfiguration &cfg : config) {
+    int ret = allocator.allocate(cfg.stream());
+    if (ret < 0) {
+      throw_error(0, "Can't allocate buffers.");
+    }
+  }
+}
+
+Stream* createStream(StreamConfiguration &streamConfig){
+  return streamConfig.stream();
+}
+
+const std::vector<std::unique_ptr<FrameBuffer>> &createBufferVector(Stream *stream, FrameBufferAllocator *allocator){
+  return allocator->buffers(stream);
+}
+
+std::vector<std::unique_ptr<Request>> createRequestVector(){
+  std::vector<std::unique_ptr<Request>> requests; 
+  return requests;
+}
+
+void fillRequests(std::vector<std::unique_ptr<Request>> &requests, const std::vector<std::unique_ptr<FrameBuffer>> &buffers, Camera &camera, Stream* &stream) {
+  
+  for (unsigned int i = 0; i < buffers.size(); i++) {
+  
+    std::unique_ptr<Request> request = camera.createRequest();
+  
+    if (!request) {
+      throw_error(0, "Can't follow that request.");
+    }
+  
+    const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
+
+    int fd = buffer->planes()[0].fd.get();
+    size_t length = buffer->planes()[0].length;
+    void *memory = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    mappedBuffers[buffer.get()] = memory;
+
+    int ret = request->addBuffer(stream, buffer.get());
+    if (ret < 0) {
+      throw_error(0, "Can't set buffer for request");
+    }
+
+    requests.push_back(std::move(request));
+
+
+
+  }
+}
+
+
 void cameraTest() {
   // 1. Create camera manager, intialize it.
   // 2. Get camera list.
@@ -58,12 +138,34 @@ void cameraTest() {
   auto camera = obtainCamera(*cameraManager, cameraID);
   acquireCamera(*camera);
 
-  // Now we can move onto configuration
-  // Probably look like the follownig:
-  // makeConfig, returns configuration object.
-  // Maybe a change config / apply config settings?
-  // validateConfig, takes configuration (after changing)
-  // setCameraConfig, set a cameras configuration
+
+  // Configuration stuff
+
+  auto config = makeConfig(*camera);
+  auto streamConfig = getStreamConfig(*config);
+  changeConfig(streamConfig);
+  validateConfig(*camera, config);
+  
+  // Frame buffer allocating for videos
+  // Basically need to make a FrameBufferAllocator
+  // Give it the neccesary memory from config 
+  // 2 functions, creator allocator, allocate memory
+  
+  auto allocator = FrameAllocatorCreator(camera);
+  allocateFrameMemory(*allocator, *config);
+
+
+  // Then we can filling the request buffer
+  // 1. Create request vector
+  // 2. Create stream object 
+  // 3. Create buffer vector 
+  // 4. Fill request vector 
+
+  auto stream = createStream(streamConfig);
+  const auto &buffers = createBufferVector(stream, allocator);
+  auto requests = createRequestVector();
+  fillRequests(requests, buffers, *camera, stream);
+
 }
 
 int main() {
