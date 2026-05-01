@@ -27,20 +27,50 @@
 // Request from camera. 
 // Clean up. 
 
+// According to good value semantics for C++, following should happen:
+// Modern C++, objects are usually cheap to move.
+// Want data to generally flow in one direction in functions (out)
+// RAII - Object should be fully functional moment its constructed.
+// Example of that is for manager for camera list. 
+// As of C++17, returning by value isnt that slow honestly.
+// Basically we are following Value-Based design.
+// Treat complex objects the same way you'd treat an int.
+// Piece of data that can be created, returned, or passed around without worring about pointers/dynamic memory
+
+
+
 // Needs integration with SDL. Work out later, for now, simplify camera logic.,
 // Minimum ~6 functions. 
 
-// Initialize camera manager
-// Args: Reference to CameraManager class. 
-// Rets: None
-void initializeManager(libcamera::CameraManager &Manager);
+// Done!
+// Creates manager and starts it.
+// Args: None 
+// Returns: Unique pointer to camera manager
+std::unique_ptr<libcamera::CameraManager> createManager();
+
+// Creates a camera object with CameraID type from the Camera Manager, and grabs it.
+// Args: Initialized Manager, Camera ID
+// Returns: Pointer to Camera object
+std::shared_ptr<libcamera::Camera> obtainCamera(libcamera::CameraManager &Manager, std::string cameraID);
+
 
 // Initialize actual camera.
 // Args: Reference to Camera
-// Rets: None 
-void getCamera();
+// Rets: Camera ID 
+std::string getCameraID(libcamera::Camera &Cam);
 
-std::vector<std::shared_ptr<libcamera::Camera>> getCameraList(const libcamera::CameraManager &Manager);
+
+// Done!
+// Makes a list of cameras based off camera manager. 
+// Args: Reference to Camera Manager 
+// Rets: Vector of shared pointers all being cameras.
+std::vector<std::shared_ptr<libcamera::Camera>> getCameraList(libcamera::CameraManager &Manager);
+
+// Done!
+// Acquires camera.
+// Args: Reference to a camera
+// Rets: Nothing
+void acquireCamera(libcamera::Camera &Cam);
 
 // Function to pass in configuration files
 // Args: Reference to Camera

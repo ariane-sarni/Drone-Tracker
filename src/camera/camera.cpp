@@ -9,30 +9,62 @@ void throw_error(int ret, const std::string &message) {
 }
 
 
-void initializeManager(CameraManager &Manager) {
-    int ret = Manager.start();
-    if (ret < 0) {
+std::unique_ptr<CameraManager> createManager(){
+    std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
+    int ret = cm->start();
+    if (ret < 0){
         throw_error(ret, "Failed to initialize camera manager.");
     }
-} 
+    return cm;
+}
 
-std::vector<std::shared_ptr<Camera>> getCameraList(const libcamera::CameraManager &Manager){
+
+std::vector<std::shared_ptr<Camera>> getCameraList(CameraManager &Manager){
     auto cameras = Manager.cameras();
     if (cameras.empty()) {
-        throw_error(0, "Failed to find a camera.");
+        throw_error(0, "Failed to find a camera. Did you initialize the camera manager properly?");
+        Manager.stop();
     }
     return cameras;
 }
 
-int main() {
-    // Making the actual camera manager. Could make this a function too maybe? 
-    std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
-    
-    // Passing cm as a pointer dereferences it. 
-    // Dereferencing an object returns a reference to it (lvalue)
-    initializeManager(*cm);
+std::string getCameraID(Camera &Cam) {
+    return Cam.id();
+}
 
-    auto cameras = getCameraList(*cm);
+std::shared_ptr<Camera> obtainCamera(CameraManager &Manager, std::string cameraID){
+    auto camera = Manager.get(cameraID);
+    if (!camera){
+        throw_error(0, "Failed to get camera. Either Camera Manager wasn't initialized, or no cameras are plugged in.");
+    }
+    return camera;
+}
+
+void acquireCamera(Camera &Cam){
+    int ret = Cam.acquire();
+    if (ret < 0) {
+        throw_error(0, "Failed to acquire camera. Was it unplugged?");
+    }
+} 
+
+
+
+int main() {
+
+    // 1. Create camera manager, intialize it.
+    // 2. Get camera list. 
+    // 3. Get Camera id, acquire camera. 
+    // 4. Set up config
+    auto cameraManager = createManager();
+    auto cameraList = getCameraList(*cameraManager);
+    std::string cameraID = getCameraID(*cameraList[0]);
+
+    auto camera = obtainCamera(*cameraManager, cameraID);
+    acquireCamera(*camera);
+
+    // Now we can move onto configuration
+    
+
 
 
 }
