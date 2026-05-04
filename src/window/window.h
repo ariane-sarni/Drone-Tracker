@@ -1,3 +1,4 @@
+// window.h 
 #pragma once
 
 #include <iostream>
@@ -23,3 +24,13 @@ class RenderWindow {
         SDL_Window* window = nullptr;
         SDL_Renderer* renderer = nullptr;
 };
+
+void initSDL();
+
+RenderWindow createWindow(const char* title, int width, int height);
+
+SDL_Renderer* createRenderer(RenderWindow& window);
+
+SDL_Texture* createTexture(SDL_Renderer* &renderer, int width, int height);
+
+void windowLoop(SDL_Texture* &cameraTexture, SDL_Renderer* &renderer, int width);

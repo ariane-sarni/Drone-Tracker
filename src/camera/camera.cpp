@@ -1,19 +1,12 @@
+// camera.cpp
 #include "camera.h"
+#include "../context.h"
+
 
 using namespace libcamera;
 
-namespace {
-std::map<FrameBuffer*, void*> mappedBuffers;
-std::mutex frameMutex;
-static std::shared_ptr<Camera> camera;
-std::vector<uint8_t> sharedFrameData;
-bool newFrameAvailable = false;
-}
 
-void throw_error(int ret, const std::string &message) {
-  std::cerr << "FATAL ERROR: " << message << " (Error code: " << ret << (")");
-  std::exit(EXIT_FAILURE);
-}
+
 
 std::unique_ptr<CameraManager> createManager() {
   std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
@@ -58,20 +51,29 @@ std::unique_ptr<CameraConfiguration> makeConfig(Camera &cam){
   return cam.generateConfiguration({StreamRole::Viewfinder});
 }
 
-StreamConfiguration getStreamConfig(CameraConfiguration &config) {
+StreamConfiguration& getStreamConfig(CameraConfiguration &config) {
   return config.at(0);
 }
 
 
 // make a way to change this to what you want later.
 void changeConfig(StreamConfiguration &config) {
-  config.size.width = 1280;
-  config.size.height = 720;
+  config.size.width = 640;
+  config.size.height = 480;
   config.pixelFormat = formats::MJPEG;
 }
 
 void validateConfig(Camera &cam, std::unique_ptr<CameraConfiguration> &config) {
-  cam.configure(config.get());
+  // FIX 2: You MUST validate the config before configuring the camera
+  if (config->validate() == CameraConfiguration::Invalid) {
+    throw_error(0, "Camera configuration is invalid!");
+  }
+  
+  // Apply the configuration and check if it succeeded
+  int ret = cam.configure(config.get());
+  if (ret < 0) {
+    throw_error(ret, "Failed to apply camera configuration!");
+  }
 }
 
 FrameBufferAllocator* FrameAllocatorCreator(std::shared_ptr<Camera> &cam) {
@@ -91,7 +93,7 @@ Stream* createStream(StreamConfiguration &streamConfig){
   return streamConfig.stream();
 }
 
-const std::vector<std::unique_ptr<FrameBuffer>> &createBufferVector(Stream *stream, FrameBufferAllocator *allocator){
+const std::vector<std::unique_ptr<FrameBuffer>> &createBufferVector(Stream* &stream, FrameBufferAllocator* &allocator){
   return allocator->buffers(stream);
 }
 
@@ -179,6 +181,12 @@ void completeCameraRequest(Camera &camera) {
   camera.start();
 }
 
+void populateRequests(std::vector<std::unique_ptr<Request>> &requests, Camera &camera){
+  for (std::unique_ptr<Request> &request : requests) {
+    camera.queueRequest(request.get());
+  }
+}
+
 
 void cameraTest() {
   // 1. Create camera manager, intialize it.
@@ -223,9 +231,4 @@ void cameraTest() {
 
   // After this, everything else is an SDL task. Should be done in Window file.
 
-}
-
-int main() {
-  cameraTest();
-  return 0;
 }

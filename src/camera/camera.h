@@ -1,3 +1,4 @@
+// camera.h
 #pragma once
 
 #include <SDL2/SDL.h>
@@ -85,7 +86,7 @@ std::unique_ptr<libcamera::CameraConfiguration> makeConfig(libcamera::Camera &ca
 // Returns Stream configuration of a config.
 // Args: Camera configuration
 // Returns: Stream configuration object of said camera config. 
-libcamera::StreamConfiguration getStreamConfig(libcamera::CameraConfiguration &config);
+libcamera::StreamConfiguration& getStreamConfig(libcamera::CameraConfiguration &config);
 
 // Changes config based on inputs. Currently hardcoded for testing purposes
 // Args: Reference to stream configuration file based off cameras config
@@ -115,7 +116,7 @@ libcamera::Stream* createStream(libcamera::StreamConfiguration &streamConfig);
 // Creates buffer vector for camera
 // Args: Stream pointer, allocator pointer
 // Returns: Reference to frame buffer vector
-const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &createBufferVector(libcamera::Stream *stream, libcamera::FrameBufferAllocator *allocator);
+const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &createBufferVector(libcamera::Stream* &stream, libcamera::FrameBufferAllocator* &allocator);
 
 // Creates a request vector.
 // Args: None
@@ -131,3 +132,5 @@ void fillRequests(std::vector<std::unique_ptr<libcamera::Request>> &requests, co
 // Args: Camera reference
 // Rets: Nothing 
 void completeCameraRequest(libcamera::Camera &camera);
+
+void populateRequests(std::vector<std::unique_ptr<libcamera::Request>> &requests, libcamera::Camera &camera);
