@@ -59,7 +59,7 @@ StreamConfiguration& getStreamConfig(CameraConfiguration &config) {
 // make a way to change this to what you want later.
 void changeConfig(StreamConfiguration &config) {
   config.size.width = 640;
-  config.size.height = 480;
+  config.size.height = 640;
   config.pixelFormat = formats::MJPEG;
 }
 
