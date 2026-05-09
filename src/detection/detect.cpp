@@ -14,6 +14,8 @@
 // Draw boxes onto RGB buffer 
 // Pass to SDL 
 
+// This is wrong. Either need to make Env somewhere else and store it in the main function, then pass as reference here, then return sesh as refernce
+// OR make this in a Class. Might be easiest way honestly.
 Ort::Session prepareEnviornment() {
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING);
     Ort::SessionOptions session_options;
