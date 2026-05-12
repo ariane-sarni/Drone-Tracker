@@ -13,10 +13,11 @@ add_executable(Counter-UAS
         src/main.cpp
         src/camera/camera.cpp
         src/window/window.cpp
-        )
+        src/detection/detect.cpp        
+)
 
-add_executable(DetectTest
-        src/detection/detect.cpp)
+#add_executable(DetectTest
+#        src/detection/detect.cpp)
 
 
 target_include_directories(Counter-UAS PRIVATE ${SDL2_INCLUDE_DIRS})
@@ -31,4 +32,4 @@ set(COMMON_LIBS
 )
 
 target_link_libraries(Counter-UAS ${COMMON_LIBS})
-target_link_libraries(DetectTest ${COMMON_LIBS})
+#target_link_libraries(DetectTest ${COMMON_LIBS})

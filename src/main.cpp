@@ -27,8 +27,8 @@ int main(){
 
     // Now for window part 
     initSDL();
-    int width = 640;
-    int height = 640;
+    int width = 800;
+    int height = 448;
     auto window = createWindow("Testing", width, height);
     auto renderer = createRenderer(window);
     auto texture = createTexture(renderer, width, height);

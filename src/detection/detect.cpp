@@ -1,6 +1,8 @@
 //detect.cpp 
 
 #include "detect.h"
+#include "../context.h"
+//#include "../"
 
 // Downloaded yolo weights. 
 // Read this API documentation to learn how to work it
@@ -26,7 +28,7 @@ Ort::Session prepareEnviornment() {
     return session;
 }
 
-int main(){
+int test(){
     // 1. Create the enviornment 
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING);
     // 2. Create session options 
@@ -45,6 +47,9 @@ int main(){
     // First step is decoding the frame from MJPEG to RGB. 
     // To do this, we need the actual frames. 
     // Lets pass the frame.
+    // First, need to make helpers here so I can just call them in main. 
+
+
 }
 
 // So I need to do the following:
