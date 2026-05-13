@@ -91,7 +91,7 @@ libcamera::StreamConfiguration& getStreamConfig(libcamera::CameraConfiguration &
 // Changes config based on inputs. Currently hardcoded for testing purposes
 // Args: Reference to stream configuration file based off cameras config
 // Returns: None
-void changeConfig(libcamera::StreamConfiguration &config);
+void changeConfig(libcamera::StreamConfiguration &config, int width, int height);
 
 // Validates a configuration of a given config for a camera.
 // Args: Camera reference, Unique pointer to camera config 

@@ -57,10 +57,11 @@ StreamConfiguration& getStreamConfig(CameraConfiguration &config) {
 
 
 // make a way to change this to what you want later.
-void changeConfig(StreamConfiguration &config) {
-  config.size.width = 800;
-  config.size.height = 448;
-  config.pixelFormat = formats::MJPEG;
+// Not putting option to change format, not neccesary.
+void changeConfig(StreamConfiguration &config, int width, int height) {
+  config.size.width = width;
+  config.size.height = height;
+  config.pixelFormat = formats::RGB888;
 }
 
 void validateConfig(Camera &cam, std::unique_ptr<CameraConfiguration> &config) {
@@ -202,10 +203,11 @@ void cameraTest() {
 
 
   // Configuration stuff
-
+  int width = 800;
+  int height = 448;
   auto config = makeConfig(*camera);
   auto streamConfig = getStreamConfig(*config);
-  changeConfig(streamConfig);
+  changeConfig(streamConfig, width, height);
   validateConfig(*camera, config);
   
   // Frame buffer allocating for videos

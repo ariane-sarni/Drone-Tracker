@@ -48,7 +48,7 @@ int test(){
     // To do this, we need the actual frames. 
     // Lets pass the frame.
     // First, need to make helpers here so I can just call them in main. 
-
+    return 1;
 
 }
 

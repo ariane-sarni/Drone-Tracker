@@ -5,6 +5,8 @@
 
 
 int main(){
+    int width = 800;
+    int height = 448;
     auto cameraManager = createManager();
     auto cameraList = getCameraList(*cameraManager);
     std::string cameraID = getCameraID(*cameraList[0]);
@@ -14,7 +16,7 @@ int main(){
 
     auto config = makeConfig(*camera);
     auto &streamConfig = getStreamConfig(*config);
-    changeConfig(streamConfig);
+    changeConfig(streamConfig, width, height);
     validateConfig(*camera, config);
     auto allocator = FrameAllocatorCreator(camera);
     allocateFrameMemory(*allocator, *config);
@@ -27,12 +29,24 @@ int main(){
 
     // Now for window part 
     initSDL();
-    int width = 800;
-    int height = 448;
     auto window = createWindow("Testing", width, height);
     auto renderer = createRenderer(window);
     auto texture = createTexture(renderer, width, height);
     windowLoop(texture, renderer, width);
+    
+    // This should be done within the window loop somehow, or while it's looping essentially.
+    // So now we have the session. We want to actually run it with a tensor. We cannot do that just yet
+    // Before we do that, we must prepare the tensor.
+    
+    // So we need to move the MJPEG Frame in WindowLoop to RGB - Done! Just changed to RGB888.
+
+    // Then we need to convert the rgb to float32 and normalize it. - Need to try this. 
+    // TFrom there, convert HWC to CHW. 
+    // Then we can create the tensor and run the session.
+    auto detectEnvironment = prepareEnviornment();
+    
+
+    // This is the ending stuff
     window.close();
     camera->stop();
     for (const auto& buffer : buffers) {

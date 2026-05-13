@@ -15,3 +15,5 @@
 #include <onnxruntime/onnxruntime_cxx_api.h>
 
 // Using onnx run time and YOLO trained data!
+
+Ort::Session prepareEnviornment();
