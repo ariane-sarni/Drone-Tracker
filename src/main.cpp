@@ -41,6 +41,8 @@ int main(){
     // So we need to move the MJPEG Frame in WindowLoop to RGB - Done! Just changed to RGB888.
 
     // Then we need to convert the rgb to float32 and normalize it. - Need to try this. 
+    // We have everything in sharedFrameData. Do it with that. Making this function:  std::vector<std::vector<float>> getPixels(std::vector<uint8_t> data)
+
     // TFrom there, convert HWC to CHW. 
     // Then we can create the tensor and run the session.
     auto detectEnvironment = prepareEnviornment();

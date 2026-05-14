@@ -83,5 +83,10 @@ void windowLoop(SDL_Texture* &cameraTexture, SDL_Renderer* &renderer, int width)
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, cameraTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
+
+        // Hella laggy but this works haha, grabs frame.
+        //for (int x : sharedFrameData) {
+        //    std::cout << x << " ";
+        //}
     }
 }
