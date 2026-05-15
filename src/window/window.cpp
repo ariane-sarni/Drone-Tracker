@@ -64,7 +64,20 @@ SDL_Texture* createTexture(SDL_Renderer* &renderer, int width, int height) {
 }
 
 
+// Starting here
+std::vector<float> getPixels(std::vector<uint8_t> data) {
+  std::vector<float> pixels;
+  for (uint8_t x : data){
+    std::cout << "Grabbed " << x << std::endl;
+    pixels.push_back((float)x);
+  }
+  return pixels;
+} 
+
 void windowLoop(SDL_Texture* &cameraTexture, SDL_Renderer* &renderer, int width) {
+    // TESTING BOOLS
+    bool grabbedPixel = false;
+    std::vector<float> converted;
     bool windowOpen = true;
     SDL_Event event; 
     while (windowOpen) {
@@ -78,6 +91,24 @@ void windowLoop(SDL_Texture* &cameraTexture, SDL_Renderer* &renderer, int width)
             if (newFrameAvailable) {
                 SDL_UpdateTexture(cameraTexture, NULL, sharedFrameData.data(), width * 3);
                 newFrameAvailable = false;
+
+                // DELETE ALL THIS LOGIC LATER 
+                        if (grabbedPixel == false) {
+            converted = getPixels(sharedFrameData);
+            grabbedPixel = true;
+            std::cout << "Converted = ";
+            for (float x : converted) {
+                std::cout << x <<  " ";
+            }
+            std::cout << std::endl;
+            std::cout << "Previous = ";
+            for (float x : sharedFrameData) {
+                std::cout << x << " ";
+            }
+
+        }
+            // UP TO HERE
+
             }
         }
         SDL_RenderClear(renderer);

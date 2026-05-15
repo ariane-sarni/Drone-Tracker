@@ -189,13 +189,6 @@ void populateRequests(std::vector<std::unique_ptr<Request>> &requests, Camera &c
 }
 
 
-// Starting here
-std::vector<std::vector<float>> getPixels(std::vector<uint8_t> data) {
-  std::vector<std::vector<float>> pixels;
-
-
-  return pixels;
-} 
 
 void cameraTest() {
   // 1. Create camera manager, intialize it.

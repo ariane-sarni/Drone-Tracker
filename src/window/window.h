@@ -34,3 +34,5 @@ SDL_Renderer* createRenderer(RenderWindow& window);
 SDL_Texture* createTexture(SDL_Renderer* &renderer, int width, int height);
 
 void windowLoop(SDL_Texture* &cameraTexture, SDL_Renderer* &renderer, int width);
+
+std::vector<float> getPixels(std::vector<uint8_t> data);

@@ -49,6 +49,8 @@
 // Returns: Unique pointer to camera manager
 std::unique_ptr<libcamera::CameraManager> createManager();
 
+
+
 // Creates a camera object with CameraID type from the Camera Manager, and grabs
 // it. Args: Initialized Manager, Camera ID Returns: Pointer to Camera object
 std::shared_ptr<libcamera::Camera>
